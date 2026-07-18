@@ -33,3 +33,12 @@ class MeetingResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ParticipantResponse(BaseModel):
+    id: int
+    meeting_id: int
+    display_name: str
+    joined_at: datetime
+
+    model_config = {"from_attributes": True}

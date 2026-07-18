@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .routers import meeting
+from .seed import seed
 
 Base.metadata.create_all(bind=engine)
+seed()
 
 app = FastAPI(title="Zoom Clone API")
 

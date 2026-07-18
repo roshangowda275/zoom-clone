@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Meeting, Participant
-from ..schemas import ScheduleMeetingRequest, JoinMeetingRequest, MeetingResponse
+from ..schemas import (
+    ScheduleMeetingRequest,
+    JoinMeetingRequest,
+    MeetingResponse,
+    ParticipantResponse,
+)
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -89,6 +94,21 @@ def get_meeting(meeting_code: str, db: Session = Depends(get_db)):
     return meeting
 
 
+@router.get("/{meeting_code}/participants", response_model=list[ParticipantResponse])
+def get_participants(meeting_code: str, db: Session = Depends(get_db)):
+    meeting = db.query(Meeting).filter(Meeting.meeting_code == meeting_code).first()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    participants = (
+        db.query(Participant)
+        .filter(Participant.meeting_id == meeting.id)
+        .order_by(Participant.joined_at.asc())
+        .all()
+    )
+    return participants
+
+
 @router.post("/join/{meeting_code}", response_model=MeetingResponse)
 def join_meeting(
     meeting_code: str, payload: JoinMeetingRequest, db: Session = Depends(get_db)
@@ -103,3 +123,20 @@ def join_meeting(
     db.refresh(participant)
 
     return meeting
+
+
+@router.delete("/{meeting_id}/participants/{participant_id}", status_code=204)
+def remove_participant(
+    meeting_id: int, participant_id: int, db: Session = Depends(get_db)
+):
+    participant = (
+        db.query(Participant)
+        .filter(Participant.id == participant_id, Participant.meeting_id == meeting_id)
+        .first()
+    )
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    db.delete(participant)
+    db.commit()
+    return None
